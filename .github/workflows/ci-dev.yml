@@ -1,40 +1,25 @@
-name: CI - DEV (FAST)
+name: CI - DEV (AUTO PROMOTE)
 
 on:
   push:
     branches: [ "dev" ]
 
-concurrency:
-  group: dev-ci
-  cancel-in-progress: true
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  dev-fast:
+  smoke-test:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Cache UV Binary
-      id: cache-uv-binary
-      uses: actions/cache@v4
-      with:
-        path: ~/.local/bin/uv
-        key: uv-binary
-
-    - name: Install UV (if needed)
-      if: steps.cache-uv-binary.outputs.cache-hit != 'true'
+    - name: Install UV
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Cache UV Dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml') }}
-        restore-keys: ${{ runner.os }}-uv-
 
     - name: Sync Dependencies
       run: uv sync
@@ -44,3 +29,14 @@ jobs:
 
     - name: Run Smoke Tests
       run: uv run pytest tests/test_smoke.py
+
+    - name: Auto Merge dev → uat if smoke test passes
+      if: success()
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git fetch origin
+        git checkout uat
+        git pull origin uat
+        git merge origin/dev --no-edit
+        git push origin uat
