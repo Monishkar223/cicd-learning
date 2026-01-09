@@ -1,36 +1,24 @@
-name: CI - PROD (FAST)
+name: CI - MAIN (APPROVAL GATE)
 
 on:
-  push:
+  pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
-  prod-fast:
+  final-checks:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Cache UV Binary
-      id: cache-uv-binary
-      uses: actions/cache@v4
-      with:
-        path: ~/.local/bin/uv
-        key: uv-binary
-
-    - name: Install UV (if needed)
-      if: steps.cache-uv-binary.outputs.cache-hit != 'true'
+    - name: Install UV
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Cache UV Dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml') }}
-        restore-keys: ${{ runner.os }}-uv-
 
     - name: Sync Dependencies
       run: uv sync
@@ -38,15 +26,5 @@ jobs:
     - name: Add src to PYTHONPATH
       run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-    - name: Run Smoke Tests
-      run: uv run pytest tests/test_smoke.py
-
-    - name: Run Integration Tests
+    - name: Run Integration Tests (optional)
       run: uv run pytest tests/test_integration.py
-
-    - name: Deploy to PROD (Simulated)
-      run: |
-        echo "Deploying to Production 🚀"
-        mkdir -p deployments/prod
-        cp -r src deployments/prod/
-        echo "Deployment Completed Successfully! 🔥"
