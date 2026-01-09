@@ -1,0 +1,41 @@
+name: CI - UAT
+
+on:
+  push:
+    branches: [ "uat" ]
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Sync Dependencies with UV
+      run: |
+        uv sync
+
+    - name: Add src to PYTHONPATH
+      run: |
+        echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
+
+    - name: Run Smoke Tests
+      run: |
+        uv run pytest tests/test_smoke.py
+
+    - name: Run Integration Tests
+      run: |
+        uv run pytest tests/test_integration.py
+
+    - name: Deploy to UAT (Simulated)
+      run: |
+        echo "Deploying to UAT environment..."
+        mkdir -p deployments/uat
+        cp -r src deployments/uat/
+        echo "Deployment Completed to UAT"
