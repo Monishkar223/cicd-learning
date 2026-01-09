@@ -21,6 +21,11 @@ jobs:
       run: |
         uv sync
 
+    # --- Important: Fix PYTHONPATH so tests can import src ---
+    - name: Add src to PYTHONPATH
+      run: |
+        echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
+
     - name: Run Smoke Tests
       run: |
         uv run pytest tests/test_smoke.py
