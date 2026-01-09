@@ -16,20 +16,20 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Cache UV binary
+    - name: Cache UV Binary
       id: cache-uv-binary
       uses: actions/cache@v4
       with:
         path: ~/.local/bin/uv
         key: uv-binary
 
-    - name: Install UV (only if cache missed)
+    - name: Install UV (if needed)
       if: steps.cache-uv-binary.outputs.cache-hit != 'true'
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    - name: Cache UV dependencies
+    - name: Cache UV Dependencies
       uses: actions/cache@v4
       with:
         path: ~/.cache/uv
