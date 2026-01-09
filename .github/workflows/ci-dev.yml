@@ -1,38 +1,44 @@
-name: CI - DEV
+name: CI - DEV (FAST)
 
 on:
   push:
     branches: [ "dev" ]
 
+concurrency:
+  group: dev-ci
+  cancel-in-progress: true
+
 jobs:
-  build-test-dev:
+  dev-fast:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Source Code
+    - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install UV
+    - name: Cache UV binary
+      id: cache-uv-binary
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/bin/uv
+        key: uv-binary
+
+    - name: Install UV (only if cache missed)
+      if: steps.cache-uv-binary.outputs.cache-hit != 'true'
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    - name: Sync Dependencies with UV
-      run: |
-        uv sync
+    - name: Cache UV dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
 
-    # --- Important: Fix PYTHONPATH so tests can import src ---
-    - name: Add src to PYTHONPATH
-      run: |
-        echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
+    - name: Sync Dependencies
+      run: uv sync
 
     - name: Run Smoke Tests
-      run: |
-        uv run pytest tests/test_smoke.py
-
-    - name: Simulate DEV Deployment
-      run: |
-        echo "Deploying to DEV environment..."
-        mkdir -p deployments/dev
-        cp -r src deployments/dev/
-        echo "Deployment Completed to DEV"
+      run: uv run pytest tests/test_smoke.py
