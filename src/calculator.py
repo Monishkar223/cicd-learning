@@ -30,4 +30,4 @@ if __name__=="__main__":
     obj1=Calculator()
     print(obj1.add(1,2,3,4,-5))
     print(obj1.sub(-1,-2,-3,-4,-5))
-    print(obj1.mul(12,12,1,1,))
+    print(obj1.mul(12,12,1,1,23,12,234))
